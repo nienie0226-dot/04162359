@@ -200,7 +200,16 @@ def search():
 
 @app.route("/sp1")
 def sp1():
-    R = "20260421"
+    R = ""
+    url = "https://baluhw.vercel.app/about"
+    Data = requests.get(url)
+    Data.encoding ="utf-8" 
+    print(Data.text)
+    sp = BeautifulSoup(Data.text, "html.parser")
+    result=sp.select("td a")
+
+    for item in result:
+        R +=item + "<br>" +item.get("href") +"<br><br>"
     return R
 
 if __name__ == "__main__":
