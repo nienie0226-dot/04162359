@@ -1,3 +1,6 @@
+import requests
+from bs4 import BeautifulSoup
+
 from flask import Flask, render_template, request
 from datetime import datetime
 import os
@@ -88,6 +91,7 @@ def index():
     link += "<a href=/math>數學計算機</a><hr>"
     link += "<a href=/read>讀取全部資料</a><hr>"
     link += "<a href=/search>老師查詢系統</a><hr>"
+    link += "<a href=/sp1>sp1</a><hr>"
     return link
 
 
@@ -194,6 +198,10 @@ def search():
         error=data_load_error if not teachers_data else None,
     )
 
+@app.route("/sp1")
+def sp1():
+    R = "20260421"
+    return R
 
 if __name__ == "__main__":
     app.run()
