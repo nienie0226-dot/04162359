@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-
+from urllib.parse import quote
 from flask import Flask, render_template, request
 from datetime import datetime
 import os
@@ -92,6 +92,7 @@ def index():
     link += "<a href=/read>讀取全部資料</a><hr>"
     link += "<a href=/search>老師查詢系統</a><hr>"
     link += "<a href=/sp1>sp1</a><hr>"
+    link += "<a href=/movie>找電影</a><hr>"
     return link
 
 
@@ -212,6 +213,50 @@ def sp1():
     for item in result:
         R +=item.text + "<br>" +item.get("href") +"<br><br>"
     return R
+
+@app.route("/movie")
+def get_all_movies():
+    url = "http://www.atmovies.com.tw/movie/next/"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        # 開眼電影網此頁面編碼為 utf-8
+        response.encoding = 'utf-8' 
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # 根據開眼電影網的結構，每一部電影被包在 class 為 'filmListAllX' 的 ul 標籤中
+        movie_items = soup.find_all('ul', class_='filmListAllX') 
+        
+        if not movie_items:
+            return "無法找到電影列表，請確認網頁結構是否已更新。"
+
+        # 開始組合 HTML 內容
+        output = "<h1>近期上映電影清單</h1><hr>"
+        
+        for item in movie_items:
+            # 抓取電影名稱與連結
+            name_tag = item.find('a')
+            if name_tag:
+                title = name_tag.text.strip()
+                link = "http://www.atmovies.com.tw" + name_tag.get('href')
+                
+                # 抓取上映日期
+                date_tag = item.find('li', class_='runtime')
+                date = date_tag.text.strip() if date_tag else "日期未定"
+                
+                # 將資訊加入輸出字串
+                output += f"<h3>🎬 {title}</h3>"
+                output += f"<p><b>上映日期：</b>{date}</p>"
+                output += f"<p><b>介紹連結：</b><a href='{link}' target='_blank'>{link}</a></p>"
+                output += "<hr>"
+
+        return output
+
+    except Exception as e:
+        return f"爬取過程發生錯誤：{e}"
 
 if __name__ == "__main__":
     app.run()
