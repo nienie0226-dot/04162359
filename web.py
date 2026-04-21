@@ -201,7 +201,7 @@ def search():
 
 @app.route("/sp1")
 def sp1():
-    R = ""
+    R = "<a href='/'>回到首頁</a><br><hr>"
 
     url = "https://baluhw.vercel.app/about"
     Data = requests.get(url)
@@ -221,7 +221,7 @@ def movie():
     Data.encoding = "utf-8"
     sp = BeautifulSoup(Data.text, "html.parser")
 
-根據你圖片中的選取器邏輯
+#根據你圖片中的選取器邏輯
     result = sp.select(".filmListAllX li")
 
     R = "<h1>即將上映電影清單</h1>"
@@ -234,7 +234,7 @@ def movie():
             # 抓取連結 (補上完整網址)
             link = "https://www.atmovies.com.tw/" + item.find("a").get("href")
 
-組合 HTML 字串
+#組合 HTML 字串
             R += f"🎬 <b>{name}</b><br>"
             R += f"🔗 <a href='{link}' target='_blank'>電影介紹連結</a><br><br>"
         except:
