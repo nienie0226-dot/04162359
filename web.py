@@ -93,8 +93,8 @@ def index():
     link += "<a href=/search>老師查詢系統</a><hr>"
     link += "<a href=/sp1>sp1</a><hr>"
     link += "<a href=/movie>找電影</a><hr>"
-    link += "<br><a href=/movie2>讀取開眼電影即將上映影片，寫入Firestore</a><br>"
-
+    link += "<a href=/movie2>讀取開眼電影即將上映影片，寫入Firestore</a><hr>"
+    link += "<a href=/movie3>查詢關鍵字</a><hr>"
     return link
 
 
@@ -278,6 +278,67 @@ def movie2():
     doc_ref.set(doc)    
 
     return "近期上映電影已爬蟲及存檔完畢，網站最近更新日期為：" + lastUpdate
+
+@app.route("/movie3", methods=["GET", "POST"])
+def movie3():
+    # 處理 GET 請求：顯示輸入關鍵字的表單
+    if request.method == "GET":
+        html = """
+        <h1>電影關鍵字查詢系統</h1>
+        <a href='/'>回到首頁</a><hr>
+        <form action='/movie3' method='POST'>
+            請輸入電影名稱關鍵字：
+            <input type='text' name='keyword' required>
+            <button type='submit'>搜尋</button>
+        </form>
+        """
+        return html
+
+    # 處理 POST 請求：接收關鍵字並去 Firestore 查詢
+    if request.method == "POST":
+        keyword = request.form.get("keyword", "").strip()
+        
+        if not keyword:
+            return "請輸入關鍵字！ <br><br><a href='/movie3'>返回搜尋頁</a>"
+
+        if db is None:
+            return "資料庫連線失敗，無法查詢。"
+
+        try:
+            # 取得 Firestore 中「電影」集合的所有資料
+            docs = db.collection("電影").get()
+            
+            # 建立一個空陣列來存放比對成功的結果
+            results = []
+            for doc in docs:
+                movie_data = doc.to_dict()
+                title = movie_data.get("title", "")
+                
+                # 如果關鍵字包含在電影名稱內，就加入結果清單
+                if keyword.lower() in title.lower():
+                    results.append(movie_data)
+
+            # 組合查詢結果的 HTML
+            result_html = f"<h1>查詢結果：包含「{keyword}」的電影</h1>"
+            result_html += "<a href='/movie3'>重新查詢</a> | <a href='/'>回到首頁</a><hr>"
+
+            if not results:
+                result_html += f"找不到任何名稱包含「{keyword}」的電影。"
+                return result_html
+
+            # 將有找到的電影一筆一筆列出來
+            for m in results:
+                result_html += f"🎬 <b>{m.get('title')}</b><br>"
+                result_html += f"📅 上映日期：{m.get('showDate')} | ⏱️ 片長：{m.get('showLength')} 分鐘<br>"
+                result_html += f"🔗 <a href='{m.get('hyperlink')}' target='_blank'>查看開眼電影介紹</a><br>"
+                if m.get('picture'):
+                    result_html += f"<img src='{m.get('picture')}' width='150'><br>"
+                result_html += "<br><hr>"
+                
+            return result_html
+
+        except Exception as exc:
+            return f"查詢時發生錯誤：{exc}"
 
 if __name__ == "__main__":
     app.run()
