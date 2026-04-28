@@ -93,7 +93,7 @@ def index():
     link += "<a href=/search>老師查詢系統</a><hr>"
     link += "<a href=/sp1>sp1</a><hr>"
     link += "<a href=/movie>找電影</a><hr>"
-    link += "<br><a href=/movie2>讀取開眼電影即將上映影片，寫入Firestore</a><br>"
+    link += "<br><a href=/select>讀取開眼電影即將上映影片，寫入Firestore</a><br>"
 
     return link
 
@@ -244,7 +244,7 @@ def movie():
             continue
 
     return R
-@app.route("/movie2")
+@app.route("/select")
 def movie():
   url = "http://www.atmovies.com.tw/movie/next/"
   Data = requests.get(url)
