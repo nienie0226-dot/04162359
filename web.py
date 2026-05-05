@@ -95,6 +95,8 @@ def index():
     link += "<a href=/movie>找電影</a><hr>"
     link += "<a href=/movie2>讀取開眼電影即將上映影片，寫入Firestore</a><hr>"
     link += "<a href=/movie3>查詢關鍵字</a><hr>"
+    link += "<a href=/road>十大肇事路口</a><hr>"
+    link += "<a href=/weather>查詢天氣</a><hr>"
     return link
 
 
@@ -340,5 +342,87 @@ def movie3():
         except Exception as exc:
             return f"查詢時發生錯誤：{exc}"
 
+@app.route("/road")
+def road():
+    R = ""
+    url = "https://newdatacenter.taichung.gov.tw/api/v1/no-auth/resource.download?rid=a1b899c0-511f-4e3d-b22b-814982a97e41"
+    
+    # 建議加入 timeout 避免網頁卡死
+    Data = requests.get(url, timeout=10)
+    JsonData = json.loads(Data.text)
+    
+    for item in JsonData:
+        # 在結尾加上 <br>，網頁才會換行
+        R += item["路口名稱"] + "，總共發生 " + item["總件數"] + "件事故<br>"
+        
+    return R +"<a href='/'>回到首頁</a><br><hr>"
+
+
+
+@app.route("/weather_query")
+def weather_query():
+    # 建立一個簡單的 HTML 表單介面
+    html = """
+    <h2>縣市天氣查詢系統</h2>
+    <a href="/">回到首頁</a>
+    <hr>
+    <form action="/weather" method="get">
+        請輸入縣市名稱：<input type="text" name="city" placeholder="例如：臺中市">
+        <button type="submit">搜尋</button>
+    </form>
+    """
+    return html
+
+@app.route("/weather", methods=["GET", "POST"])
+def weather():
+    # 1. 如果是第一次進入，或是沒有帶參數，先顯示查詢表單
+    city = request.values.get("city")
+    if not city:
+        html = """
+        <h2>縣市天氣查詢系統</h2>
+        <a href="/">回到首頁</a>
+        <hr>
+        <form action="/weather" method="get">
+            請輸入縣市名稱：<input type="text" name="city" placeholder="例如：臺中市" required>
+            <button type="submit">搜尋</button>
+        </form>
+        """
+        return html
+
+    # 2. 如果有帶 city 參數，則執行爬蟲邏輯
+    city = city.replace("台", "臺")
+    city_encoded = quote(city)
+    
+    # 你的 API URL (參考 image_1ea25b.png 的邏輯)
+    url = f"https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=rdec-key-123-45678-011121314&format=JSON&locationName={city_encoded}"
+    
+    try:
+        Data = requests.get(url, timeout=10)
+        json_data = json.loads(Data.text)
+        
+        # 取得氣象描述 (datasetDescription)
+        weather_title = json_data["records"]["datasetDescription"]
+        
+        # 取得該城市的第一筆天氣資料
+        location_data = json_data["records"]["location"][0]
+        
+        # 天氣現象 (Weather Element 0)
+        weather_state = location_data["weatherElement"][0]["time"][0]["parameter"]["parameterName"]
+        # 降雨機率 (Weather Element 1)
+        rain_prob = location_data["weatherElement"][1]["time"][0]["parameter"]["parameterName"]
+        
+        R = f"<h1>{weather_title}</h1>"
+        R += f"<h3>城市：{city}</h3>"
+        R += f"目前天氣：<b>{weather_state}</b><br>"
+        R += f"降雨機率：<b>{rain_prob}%</b><br><br>"
+        
+    except Exception as e:
+        R = f"<h1>查詢失敗</h1>"
+        R += f"找不到「{city}」的資料，請確認輸入是否正確（如：臺南市）。<br>"
+        # R += f"Debug 訊息：{e}<br>" # 除錯用
+
+    R += "<a href='/weather'>重新查詢</a> | <a href='/'>回到首頁</a>"
+    return R
+ 
 if __name__ == "__main__":
     app.run()
