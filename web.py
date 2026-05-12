@@ -488,18 +488,32 @@ def weather():
     R += "<a href='/weather'>重新查詢</a> | <a href='/'>回到首頁</a>"
     return R
 
-@app.route("/webhook", methods=["POST"])
+@app.route("/webhook", methods=['POST'])
 def webhook():
-    # build a request object
-    req = request.get_json(force=True)
-    # fetch queryResult from json
-    action =  req["queryResult"]["action"]
-    #msg =  req.get("queryResult").get("queryText")
-    #info = "我是巴嚕設計的ChatGPT,動作:" + action + "； 查詢內容：" + msg
-    if(rate == "rateChoice"):
-        rate = req.get("queryResult").get("parameters").get("rate")
-        info = "您選擇的電影分級是：" + rate
-    return make_response(jsonify({"fulfillmentText": info}))
+    # 接收 Dialogflow 的請求
+    req = request.get_json(silent=True, force=True)
+    
+    # 這裡假設你的 Intent 叫做 movies
+    # 從 Firestore 查詢普遍級電影
+    db = firestore.client()
+    movies_ref = db.collection("本週新片含分級")
+    query = movies_ref.where("rate", "==", "普遍級").stream()
+
+    movie_list = "Gemini 為您找到本週的普遍級電影有：\n"
+    found = False
+    
+    for doc in query:
+        found = True
+        movie = doc.to_dict()
+        movie_list += f"🎬 {movie['title']}\n"
+
+    if not found:
+        movie_list = "這週目前沒有普遍級的電影喔！"
+
+    # 回傳給 Dialogflow 的格式
+    return jsonify({
+        "fulfillmentText": movie_list
+    })
     info = "我是楊子青開發的電影聊天機器人,您選擇的電影分級是：" +
     rate + "，相關電影：\n"
  
