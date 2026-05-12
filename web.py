@@ -493,38 +493,39 @@ def webhook():
     # 建立請求物件
     req = request.get_json(force=True)
     
-    # 從 JSON 中取得 action
+    # 取得 action 與參數
     action = req.get("queryResult").get("action")
     
-    if (action == "rateChoice"):
-        # 取得 Dialogflow 抓到的電影分級參數
+    if action == "rateChoice":
+        # 取得 Dialogflow 抓到的分級（例如：普遍級、保護級）
         rate = req.get("queryResult").get("parameters").get("rate")
         
-        # 初始化回覆字串，這裡放上你的姓名
-        info = "我是聶運安開發的電影聊天機器人，您選擇的電影分級是：" + rate + "，相關電影：\n\n"
+        # 1. 顯示你的姓名 2. 顯示選擇的分級
+        info = f"我是聶運安開發的電影聊天機器人，您選擇的分級是：{rate}，相關電影如下：\n\n"
         
-        # 修正資料庫連線語法
         db = firestore.client()
-        # 請確認你的 Firestore 集合名稱，這邊沿用你程式碼中的 "電影含分級"
-        collection_ref = db.collection("電影含分級")
+        # 重要：這裡必須跟截圖左側的集合名稱「本週新片含分級」一模一樣
+        collection_ref = db.collection("本週新片含分級")
         docs = collection_ref.get()
         
         found = False
+        movie_list = ""
         for doc in docs:
-            movie_data = doc.to_dict()
-            # 判斷資料庫中的分級是否包含使用者選擇的分級
-            if rate in movie_data.get("rate", ""):
+            dict = doc.to_dict()
+            # 判斷資料庫內的 rate 欄位是否包含使用者選的分級
+            if rate in dict.get("rate", ""):
                 found = True
-                info += "🎬 片名：" + movie_data.get("title") + "\n"
-                info += "🔗 介紹：" + movie_data.get("hyperlink") + "\n\n"
+                movie_list += "🎬 片名：" + dict.get("title", "未知") + "\n"
+                movie_list += "🔗 介紹：" + dict.get("hyperlink", "#") + "\n\n"
         
-        if not found:
-            info = f"哎呀，目前資料庫中沒有 {rate} 的電影耶。"
+        if found:
+            info += movie_list
+        else:
+            info = f"報告！本週資料庫中沒有找到 {rate} 的電影喔。"
 
-        # 注意：return 必須在 for 迴圈結束後才執行，否則只會跑出一台電影
         return make_response(jsonify({"fulfillmentText": info}))
 
-    return make_response(jsonify({"fulfillmentText": "無對應動作"}))
+    return make_response(jsonify({"fulfillmentText": "Webhook 運作正常，但 Action 不匹配。"}))
 
     
  
