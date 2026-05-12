@@ -488,29 +488,43 @@ def weather():
     R += "<a href='/weather'>重新查詢</a> | <a href='/'>回到首頁</a>"
     return R
 
-@app.route("/webhook3", methods=["POST"])
-def webhook3():
- # build a request object
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    # 建立請求物件
     req = request.get_json(force=True)
- # fetch queryResult from json
+    
+    # 從 JSON 中取得 action
     action = req.get("queryResult").get("action")
- #msg = req.get("queryResult").get("queryText")
- #info = "動作：" + action + "； 查詢內容：" + msg
+    
     if (action == "rateChoice"):
+        # 取得 Dialogflow 抓到的電影分級參數
         rate = req.get("queryResult").get("parameters").get("rate")
-        info = "我是楊子青開發的電影聊天機器人,您選擇的電影分級是：" +
-        rate + "，相關電影：\n"
-        estore.client()
+        
+        # 初始化回覆字串，這裡放上你的姓名
+        info = "我是聶運安開發的電影聊天機器人，您選擇的電影分級是：" + rate + "，相關電影：\n\n"
+        
+        # 修正資料庫連線語法
+        db = firestore.client()
+        # 請確認你的 Firestore 集合名稱，這邊沿用你程式碼中的 "電影含分級"
         collection_ref = db.collection("電影含分級")
         docs = collection_ref.get()
-        result = ""
+        
+        found = False
         for doc in docs:
-            dict = doc.to_dict()
-            if rate in dict["rate"]:
-                result += "片名：" + dict["title"] + "\n"
-                result += "介紹：" + dict["hyperlink"] + "\n\n"
-                info += result
-            return make_response(jsonify({"fulfillmentText": info}))
+            movie_data = doc.to_dict()
+            # 判斷資料庫中的分級是否包含使用者選擇的分級
+            if rate in movie_data.get("rate", ""):
+                found = True
+                info += "🎬 片名：" + movie_data.get("title") + "\n"
+                info += "🔗 介紹：" + movie_data.get("hyperlink") + "\n\n"
+        
+        if not found:
+            info = f"哎呀，目前資料庫中沒有 {rate} 的電影耶。"
+
+        # 注意：return 必須在 for 迴圈結束後才執行，否則只會跑出一台電影
+        return make_response(jsonify({"fulfillmentText": info}))
+
+    return make_response(jsonify({"fulfillmentText": "無對應動作"}))
 
     
  
