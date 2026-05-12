@@ -493,10 +493,12 @@ def webhook():
     # build a request object
     req = request.get_json(force=True)
     # fetch queryResult from json
-    action =  req.get("queryResult").get("action")
-    msg =  req.get("queryResult").get("queryText")
-    info = "動作：" + action + "； 查詢內容：" + msg
-    
+    action =  req["queryResult"]["action"]
+    #msg =  req.get("queryResult").get("queryText")
+    #info = "我是巴嚕設計的ChatGPT,動作:" + action + "； 查詢內容：" + msg
+    if(rate == "rateChoice"):
+        rate = req.get("queryResult").get("parameters").get("rate")
+        info = "您選擇的電影分級是：" + rate
     return make_response(jsonify({"fulfillmentText": info}))
 
  
