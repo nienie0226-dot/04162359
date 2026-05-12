@@ -488,33 +488,30 @@ def weather():
     R += "<a href='/weather'>重新查詢</a> | <a href='/'>回到首頁</a>"
     return R
 
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    # 接收 Dialogflow 傳來的 JSON
-    req = request.get_json(silent=True, force=True)
-    
-    # 取得 Dialogflow 抓到的參數 (普遍級、保護級等)
-    target_rate = req.get('queryResult').get('parameters').get('rate')
-    
-    # 到 Firestore 查詢對應分級的電影
-    collection_ref = db.collection("本週新片含分級")
-    # 這裡的 "rate" 要對應你資料庫裡的欄位名稱
-    docs = collection_ref.where("rate", "==", target_rate).stream()
+@app.route("/webhook3", methods=["POST"])
+def webhook3():
+ # build a request object
+    req = request.get_json(force=True)
+ # fetch queryResult from json
+    action = req.get("queryResult").get("action")
+ #msg = req.get("queryResult").get("queryText")
+ #info = "動作：" + action + "； 查詢內容：" + msg
+    if (action == "rateChoice"):
+        rate = req.get("queryResult").get("parameters").get("rate")
+        info = "我是楊子青開發的電影聊天機器人,您選擇的電影分級是：" +
+        rate + "，相關電影：\n"
+        estore.client()
+        collection_ref = db.collection("電影含分級")
+        docs = collection_ref.get()
+        result = ""
+        for doc in docs:
+            dict = doc.to_dict()
+            if rate in dict["rate"]:
+                result += "片名：" + dict["title"] + "\n"
+                result += "介紹：" + dict["hyperlink"] + "\n\n"
+                info += result
+            return make_response(jsonify({"fulfillmentText": info}))
 
-    movie_titles = []
-    for doc in docs:
-        movie_titles.append(doc.to_dict().get("title"))
-
-    # 組合回覆內容
-    if movie_titles:
-        reply = f"我是聶運安開發的機器人，幫您找到以下{target_rate}電影：\n" + "、".join(movie_titles)
-    else:
-        reply = f"哎呀，本週好像沒有{target_rate}的電影耶。"
-
-    # 依照 Dialogflow 的格式回傳
-    info = "我是聶運安開發的電影聊天機器人,您選擇的電影分級是：" +
-    rate + "，相關電影：\n"
-    return jsonify({"fulfillmentText": reply})
     
  
 if __name__ == "__main__":
