@@ -512,9 +512,10 @@ def webhook():
         reply = f"哎呀，本週好像沒有{target_rate}的電影耶。"
 
     # 依照 Dialogflow 的格式回傳
-    return jsonify({"fulfillmentText": reply})
     info = "我是聶運安開發的電影聊天機器人,您選擇的電影分級是：" +
     rate + "，相關電影：\n"
+    return jsonify({"fulfillmentText": reply})
+    
  
 if __name__ == "__main__":
     app.run()
