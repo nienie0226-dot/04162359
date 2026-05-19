@@ -99,6 +99,7 @@ def index():
     link += "<a href=/road>十大肇事路口</a><hr>"
     link += "<a href=/weather>查詢天氣</a><hr>"
     link += "<a href=/rate>本週新片進DB</a><hr>"
+    link += "<a href=/demo>對話框</a><hr>"
     return link
 
 
@@ -526,6 +527,11 @@ def webhook():
         return make_response(jsonify({"fulfillmentText": info}))
 
     return make_response(jsonify({"fulfillmentText": "Webhook 運作正常，但 Action 不匹配。"}))
+
+@app.route("/demo")
+def demo():
+    return render_template("demo.html")
+
 
     
  
