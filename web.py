@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import json
 import firebase_admin
+from google import genai
 from firebase_admin import credentials, firestore
 from flask import Flask, render_template, request, make_response, jsonify
 
@@ -531,6 +532,19 @@ def webhook():
 @app.route("/demo")
 def demo():
     return render_template("demo.html")
+
+client = genai.Client()
+
+@app.route("/AI")
+def AI():
+    # 每次使用者拜訪該路徑時，直接使用全域的 client 呼叫模型
+    response = client.models.generate_content(
+        model='gemini-3.5-flash',
+        contents='我想查詢靜宜大學資管系的評價？',
+    )
+    
+    # 回傳生成的文字
+    return response.text
 
 
     
