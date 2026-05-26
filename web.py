@@ -536,7 +536,7 @@ def webhook():
         
         # 2. 設定 Gemini 生成參數
         ai_config = types.GenerateContentConfig(
-            max_output_tokens=128
+            max_output_tokens=2000
         )
         
         # 3. 呼叫 Gemini，並把使用者的真實問題 (user_text) 傳給它
