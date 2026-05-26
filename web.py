@@ -503,7 +503,7 @@ def webhook():
     #info = "我是楊硯涵設計的電影聊天機器人，動作：" + action + "； 查詢內容：" + msg
     if (action == "rateChoice"):
         rate =  req["queryResult"]["parameters"]["rate"]
-        info = "我是楊硯涵設計的電影聊天機器人，您選擇的電影分級是：" + rate + "，相關電影：\n"
+        info = "我是聶巴嚕設計的電影聊天機器人，您選擇的電影分級是：" + rate + "，相關電影：\n"
 
         db = firestore.client()
         collection_ref = db.collection("本週新片含分級")
@@ -516,7 +516,7 @@ def webhook():
         info += result
 
     elif (action == "input.unknown"):
-        #info = req["queryResult"]["queryText"]
+        info = req["queryResult"]["queryText"]
 
         # 2. 建立設定物件，設定你希望限制的最大 Token 數（例如 500）
         ai_config = types.GenerateContentConfig(
