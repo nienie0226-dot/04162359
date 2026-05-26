@@ -542,13 +542,15 @@ def webhook():
         # 3. 呼叫 Gemini，並把使用者的真實問題 (user_text) 傳給它
         # 注意：目前主流的模型版本通常是 gemini-1.5-flash，若 3.5 報錯請改回 1.5
         response = client.models.generate_content(
-            model='gemini-1.5-flash', 
-            contents=user_text,  # 這裡不要寫死，直接代入變數
+            model='gemini-2.5-flash', 
+            contents=["queryResult"]["queryText"],  # 這裡不要寫死，直接代入變數
             config=ai_config,    
         )
 
         # 4. 把 Gemini 產生的回答抓出來
         info = response.text
+    else:
+        info ="Actoin 不匹配，無法處理此請求"
         
         # 5. 回傳給 Dialogflow
         return make_response(jsonify({"fulfillmentText": info}))
