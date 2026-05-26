@@ -497,7 +497,6 @@ def weather():
 def webhook():
     req = request.get_json(force=True) 
     action = req.get("queryResult").get("action")
-    client = genai.Client()
     
     # === 第一個 Action 判斷：電影分級 ===
     if action == "rateChoice":
@@ -543,7 +542,7 @@ def webhook():
         info = response.text
     else:
         info = "Action 不匹配，無法處理此請求"
-        
+
         return make_response(jsonify({"fulfillmentText": info}))
 @app.route("/demo")
         
@@ -563,7 +562,7 @@ def AI():
     # 回傳生成的文字
     return response.text
 
-
+client = genai.Client()
 @app.route('/ask', methods=['GET', 'POST']) 
 def ask():
     if request.method == "POST":
