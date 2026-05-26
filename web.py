@@ -495,13 +495,8 @@ def weather():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    # 建立請求物件
-    req = request.get_json(force=True)
-    
-    # 取得 action 
+    req = request.get_json(force=True) 
     action = req.get("queryResult").get("action")
-    
-    # 💡 將 Gemini Client 的初始化放在判斷式最前面，就不會打斷 if/elif 的連貫性了
     client = genai.Client()
     
     # === 第一個 Action 判斷：電影分級 ===
@@ -511,7 +506,7 @@ def webhook():
         
         db = firestore.client()
         collection_ref = db.collection("本週新片含分級")
-        docs = collection_ref.get()
+        docs = collection_ref.where("rate","==",rate).get()
         
         found = False
         movie_list = ""
@@ -532,10 +527,7 @@ def webhook():
 
     # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
     elif action == "input.unknown":
-        # 1. 抓取使用者輸入的文字
         user_text = req.get("queryResult").get("queryText")
-        
-        # 2. 設定 Gemini 生成參數
         ai_config = types.GenerateContentConfig(
             max_output_tokens=500
         )
@@ -549,15 +541,14 @@ def webhook():
 
         # 4. 把 Gemini 產生的回答抓出來
         info = response.text
+    else:
+        info = "Action 不匹配，無法處理此請求"
+        
+        return make_response(jsonify({"fulfillmentText": info}))
+@app.route("/demo")
         
         # 5. 回傳給 Dialogflow
         return make_response(jsonify({"fulfillmentText": info}))
-
-    # === 如果 Action 都不符合上述條件 ===
-    else:
-        info = "Action 不匹配，無法處理此請求"
-        return make_response(jsonify({"fulfillmentText": info}))
-@app.route("/demo")
 def demo():
     return render_template("demo.html")
 
