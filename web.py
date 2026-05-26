@@ -530,6 +530,7 @@ def webhook():
     # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
     # 注意！這裡的 elif 必須跟上面的 if 對齊！
     # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
+ # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
     elif action == "input.unknown":
         # 1. 先抓取使用者輸入的文字 (也就是使用者真正在聊天室打的字)
         user_text = req.get("queryResult").get("queryText")
@@ -539,26 +540,30 @@ def webhook():
             max_output_tokens=500
         )
         
-        # 3. 呼叫 Gemini，並把使用者的真實問題 (user_text) 傳給它
-        # 注意：目前主流的模型版本通常是 gemini-1.5-flash，若 3.5 報錯請改回 1.5
+        # 3. 呼叫 Gemini，把剛剛抓到的 user_text 傳進去
+        # (保險起見，建議先用 gemini-1.5-flash 或 gemini-2.0-flash 確保模型名稱有效)
         response = client.models.generate_content(
-            model='gemini-2.5-flash', 
-            contents=["queryResult"]["queryText"],  # 這裡不要寫死，直接代入變數
+            model='gemini-1.5-flash', 
+            contents=user_text,  # 直接使用變數
             config=ai_config,    
         )
 
         # 4. 把 Gemini 產生的回答抓出來
         info = response.text
-    else:
-        info ="Actoin 不匹配，無法處理此請求"
         
-        # 5. 回傳給 Dialogflow
+        # 5. 針對 input.unknown 情況，在這裡回傳給 Dialogflow！
+        return make_response(jsonify({"fulfillmentText": info}))
+
+    # === 如果 Action 都不符合上述條件 ===
+    else:
+        info = "Action 不匹配，無法處理此請求"
         return make_response(jsonify({"fulfillmentText": info}))
 
 @app.route("/demo")
 def demo():
     return render_template("demo.html")
 
+# 建議將 client 初始化移到最上面 import 區塊的下方，這樣全域都能使用
 client = genai.Client()
 
 @app.route("/AI")
