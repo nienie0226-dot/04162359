@@ -101,6 +101,7 @@ def index():
     link += "<a href=/weather>查詢天氣</a><hr>"
     link += "<a href=/rate>本週新片進DB</a><hr>"
     link += "<a href=/demo>對話框</a><hr>"
+    link += "<a href=/AI>Gemini</a><hr>"
     return link
 
 
