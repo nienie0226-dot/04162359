@@ -495,55 +495,45 @@ def weather():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    req = request.get_json(force=True) 
-    action = req.get("queryResult").get("action")
-    
-    # === 第一個 Action 判斷：電影分級 ===
-    if action == "rateChoice":
-        rate = req.get("queryResult").get("parameters").get("rate")
-        info = f"我是聶運安開發的電影聊天機器人，您選擇的分級是：{rate}，相關電影如下：\n\n"
-        
+    # build a request object
+    req = request.get_json(force=True)
+    # fetch queryResult from json
+    action =  req["queryResult"]["action"]
+    #msg =  req["queryResult"]["queryText"]
+    #info = "我是楊硯涵設計的電影聊天機器人，動作：" + action + "； 查詢內容：" + msg
+    if (action == "rateChoice"):
+        rate =  req["queryResult"]["parameters"]["rate"]
+        info = "我是楊硯涵設計的電影聊天機器人，您選擇的電影分級是：" + rate + "，相關電影：\n"
+
         db = firestore.client()
         collection_ref = db.collection("本週新片含分級")
-        docs = collection_ref.where("rate","==",rate).get()
-        
-        found = False
-        movie_list = ""
+        docs = collection_ref.get()
+        result = ""
         for doc in docs:
-            movie_dict = doc.to_dict()  
-            if rate in movie_dict.get("rate", ""):
-                found = True
-                movie_list += "🎬 片名：" + movie_dict.get("title", "未知") + "\n"
-                movie_list += "🔗 介紹：" + movie_dict.get("hyperlink", "#") + "\n\n"
-        
-        if found:
-            info += movie_list
-        else:
-            info = f"報告！本週資料庫中沒有找到 {rate} 的電影喔。"
-            
-        # 將電影結果回傳
-        return make_response(jsonify({"fulfillmentText": info}))
+            dict = doc.to_dict()
+            if rate in dict["rate"]:
+                result += "片名：" + dict["title"] + "\n"
+        info += result
 
-    # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
-    elif action == "input.unknown":
-        user_text = req.get("queryResult").get("queryText")
+    elif (action == "input.unknown"):
+        #info = req["queryResult"]["queryText"]
+
+        # 2. 建立設定物件，設定你希望限制的最大 Token 數（例如 500）
         ai_config = types.GenerateContentConfig(
-            max_output_tokens=500
+            max_output_tokens = 500
         )
-        
-        # 3. 呼叫 Gemini
+
+        # 每次使用者拜訪該路徑時，直接使用全域的 client 呼叫模型
         response = client.models.generate_content(
-            model='gemini-1.5-flash', 
-            contents=user_text,  
-            config=ai_config,    
+            model='gemini-3.5-flash',
+            contents=req["queryResult"]["queryText"],
+            config=ai_config,
         )
 
-        # 4. 把 Gemini 產生的回答抓出來
+回傳生成的文字
         info = response.text
-    else:
-        info = "Action 不匹配，無法處理此請求"
 
-        return make_response(jsonify({"fulfillmentText": info}))
+    return make_response(jsonify({"fulfillmentText": info}))
 @app.route("/demo")
         
         # 5. 回傳給 Dialogflow
