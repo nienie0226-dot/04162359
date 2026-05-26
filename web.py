@@ -501,6 +501,9 @@ def webhook():
     # 取得 action 
     action = req.get("queryResult").get("action")
     
+    # 💡 將 Gemini Client 的初始化放在判斷式最前面，就不會打斷 if/elif 的連貫性了
+    client = genai.Client()
+    
     # === 第一個 Action 判斷：電影分級 ===
     if action == "rateChoice":
         rate = req.get("queryResult").get("parameters").get("rate")
@@ -513,7 +516,7 @@ def webhook():
         found = False
         movie_list = ""
         for doc in docs:
-            movie_dict = doc.to_dict()  # 建議變數名稱不要用 dict，因為 dict 是 Python 內建關鍵字
+            movie_dict = doc.to_dict()  
             if rate in movie_dict.get("rate", ""):
                 found = True
                 movie_list += "🎬 片名：" + movie_dict.get("title", "未知") + "\n"
@@ -528,12 +531,8 @@ def webhook():
         return make_response(jsonify({"fulfillmentText": info}))
 
     # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
-    # 注意！這裡的 elif 必須跟上面的 if 對齊！
-    # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
- # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
-    client = genai.Client()
     elif action == "input.unknown":
-        # 1. 先抓取使用者輸入的文字 (也就是使用者真正在聊天室打的字)
+        # 1. 抓取使用者輸入的文字
         user_text = req.get("queryResult").get("queryText")
         
         # 2. 設定 Gemini 生成參數
@@ -541,25 +540,23 @@ def webhook():
             max_output_tokens=500
         )
         
-        # 3. 呼叫 Gemini，把剛剛抓到的 user_text 傳進去
-        # (保險起見，建議先用 gemini-1.5-flash 或 gemini-2.0-flash 確保模型名稱有效)
+        # 3. 呼叫 Gemini
         response = client.models.generate_content(
             model='gemini-1.5-flash', 
-            contents=user_text,  # 直接使用變數
+            contents=user_text,  
             config=ai_config,    
         )
 
         # 4. 把 Gemini 產生的回答抓出來
         info = response.text
         
-        # 5. 針對 input.unknown 情況，在這裡回傳給 Dialogflow！
+        # 5. 回傳給 Dialogflow
         return make_response(jsonify({"fulfillmentText": info}))
 
     # === 如果 Action 都不符合上述條件 ===
     else:
         info = "Action 不匹配，無法處理此請求"
         return make_response(jsonify({"fulfillmentText": info}))
-
 @app.route("/demo")
 def demo():
     return render_template("demo.html")
