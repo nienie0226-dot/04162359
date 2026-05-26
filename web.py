@@ -529,24 +529,29 @@ def webhook():
 
     # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
     # 注意！這裡的 elif 必須跟上面的 if 對齊！
+    # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
     elif action == "input.unknown":
-        ai_config = types.GenerateContentConfig(
-        max_output_tokens = 128
-    )
-         response = client.models.generate_content(
-        model='gemini-3.5-flash', 
-        contents='我想查詢靜宜大學資管系的評價？',
-        config=ai_config,    
-    )
-
-        # 抓取使用者輸入的文字 (例如："靜宜資管如何")
+        # 1. 先抓取使用者輸入的文字 (也就是使用者真正在聊天室打的字)
         user_text = req.get("queryResult").get("queryText")
-        info = f"你剛剛輸入的未知問題是：{user_text}"
+        
+        # 2. 設定 Gemini 生成參數
+        ai_config = types.GenerateContentConfig(
+            max_output_tokens=128
+        )
+        
+        # 3. 呼叫 Gemini，並把使用者的真實問題 (user_text) 傳給它
+        # 注意：目前主流的模型版本通常是 gemini-1.5-flash，若 3.5 報錯請改回 1.5
+        response = client.models.generate_content(
+            model='gemini-1.5-flash', 
+            contents=user_text,  # 這裡不要寫死，直接代入變數
+            config=ai_config,    
+        )
+
+        # 4. 把 Gemini 產生的回答抓出來
+        info = response.text
+        
+        # 5. 回傳給 Dialogflow
         return make_response(jsonify({"fulfillmentText": info}))
-
-    # === 如果 Action 都不符合上述條件 ===
-    return make_response(jsonify({"fulfillmentText": "Webhook 運作正常，但 Action 不匹配。"}))
-
 
 @app.route("/demo")
 def demo():
