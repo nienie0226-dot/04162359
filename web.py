@@ -531,6 +531,7 @@ def webhook():
     # 注意！這裡的 elif 必須跟上面的 if 對齊！
     # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
  # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
+    client = genai.Client()
     elif action == "input.unknown":
         # 1. 先抓取使用者輸入的文字 (也就是使用者真正在聊天室打的字)
         user_text = req.get("queryResult").get("queryText")
@@ -562,9 +563,6 @@ def webhook():
 @app.route("/demo")
 def demo():
     return render_template("demo.html")
-
-# 建議將 client 初始化移到最上面 import 區塊的下方，這樣全域都能使用
-client = genai.Client()
 
 @app.route("/AI")
 def AI():
