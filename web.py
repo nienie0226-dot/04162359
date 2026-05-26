@@ -527,6 +527,10 @@ def webhook():
         else:
             info = f"報告！本週資料庫中沒有找到 {rate} 的電影喔。"
 
+        elif (action == "input.unknown"):
+            info =  req["queryResult"]["queryText"]
+
+
         return make_response(jsonify({"fulfillmentText": info}))
 
     return make_response(jsonify({"fulfillmentText": "Webhook 運作正常，但 Action 不匹配。"}))
