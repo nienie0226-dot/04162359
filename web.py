@@ -9,6 +9,7 @@ import firebase_admin
 from google import genai
 from firebase_admin import credentials, firestore
 from flask import Flask, render_template, request, make_response, jsonify
+from google.genai import types
 
 
 def get_firestore_client():
@@ -497,43 +498,55 @@ def webhook():
     # 建立請求物件
     req = request.get_json(force=True)
     
-    # 取得 action 與參數
+    # 取得 action 
     action = req.get("queryResult").get("action")
     
+    # === 第一個 Action 判斷：電影分級 ===
     if action == "rateChoice":
-        # 取得 Dialogflow 抓到的分級（例如：普遍級、保護級）
         rate = req.get("queryResult").get("parameters").get("rate")
-        
-        # 1. 顯示你的姓名 2. 顯示選擇的分級
         info = f"我是聶運安開發的電影聊天機器人，您選擇的分級是：{rate}，相關電影如下：\n\n"
         
         db = firestore.client()
-        # 重要：這裡必須跟截圖左側的集合名稱「本週新片含分級」一模一樣
         collection_ref = db.collection("本週新片含分級")
         docs = collection_ref.get()
         
         found = False
         movie_list = ""
         for doc in docs:
-            dict = doc.to_dict()
-            # 判斷資料庫內的 rate 欄位是否包含使用者選的分級
-            if rate in dict.get("rate", ""):
+            movie_dict = doc.to_dict()  # 建議變數名稱不要用 dict，因為 dict 是 Python 內建關鍵字
+            if rate in movie_dict.get("rate", ""):
                 found = True
-                movie_list += "🎬 片名：" + dict.get("title", "未知") + "\n"
-                movie_list += "🔗 介紹：" + dict.get("hyperlink", "#") + "\n\n"
+                movie_list += "🎬 片名：" + movie_dict.get("title", "未知") + "\n"
+                movie_list += "🔗 介紹：" + movie_dict.get("hyperlink", "#") + "\n\n"
         
         if found:
             info += movie_list
         else:
             info = f"報告！本週資料庫中沒有找到 {rate} 的電影喔。"
-
-        elif (action == "input.unknown"):
-            info =  req["queryResult"]["queryText"]
-
-
+            
+        # 將電影結果回傳
         return make_response(jsonify({"fulfillmentText": info}))
 
+    # === 第二個 Action 判斷：未知的輸入 (Fallback) ===
+    # 注意！這裡的 elif 必須跟上面的 if 對齊！
+    elif action == "input.unknown":
+        ai_config = types.GenerateContentConfig(
+        max_output_tokens = 128
+    )
+         response = client.models.generate_content(
+        model='gemini-3.5-flash', 
+        contents='我想查詢靜宜大學資管系的評價？',
+        config=ai_config,    
+    )
+
+        # 抓取使用者輸入的文字 (例如："靜宜資管如何")
+        user_text = req.get("queryResult").get("queryText")
+        info = f"你剛剛輸入的未知問題是：{user_text}"
+        return make_response(jsonify({"fulfillmentText": info}))
+
+    # === 如果 Action 都不符合上述條件 ===
     return make_response(jsonify({"fulfillmentText": "Webhook 運作正常，但 Action 不匹配。"}))
+
 
 @app.route("/demo")
 def demo():
