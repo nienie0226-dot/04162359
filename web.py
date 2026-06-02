@@ -492,15 +492,17 @@ def weather():
 
     R += "<a href='/weather'>重新查詢</a> | <a href='/'>回到首頁</a>"
     return R
-
+    
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    # build a request object
+    # 建立 request 物件
     req = request.get_json(force=True)
-    # fetch queryResult from json
-    action =  req["queryResult"]["action"]
-    #msg =  req["queryResult"]["queryText"]
-    #info = "我是楊硯涵設計的電影聊天機器人，動作：" + action + "； 查詢內容：" + msg
+    # 從 json 取得 action
+    action =  req.get("queryResult").get("action")
+    
+    # 設定一個預設回覆，避免程式出錯時完全沒有回應
+    info = "抱歉，系統發生錯誤，無法處理您的請求。"
+
     if (action == "rateChoice"):
         rate =  req["queryResult"]["parameters"]["rate"]
         info = "我是聶巴嚕設計的電影聊天機器人，您選擇的電影分級是：" + rate + "，相關電影：\n"
@@ -510,32 +512,40 @@ def webhook():
         docs = collection_ref.get()
         result = ""
         for doc in docs:
-            dict = doc.to_dict()
-            if rate in dict["rate"]:
-                result += "片名：" + dict["title"] + "\n"
+            # 溫馨小提醒：dict 是 Python 內建的保留字，建議變數名稱改用 doc_dict 避免衝突
+            doc_dict = doc.to_dict()
+            if rate in doc_dict["rate"]:
+                result += "片名：" + doc_dict["title"] + "\n"
         info += result
 
     elif (action == "input.unknown"):
-        info = req["queryResult"]["queryText"]
+        # 這裡的 req["queryResult"]["queryText"] 就是使用者剛才輸入的不懂的問題
+        user_query = req["queryResult"]["queryText"]
+        
+        # 既然你希望是 100 字左右，可以在提示詞直接下達指令
         instruction_text = (
             "你是一個熱心且知識豐富的專業智慧助理。"
-            "對於使用者的提問，請回覆重點的關鍵字，不要重述問題。"         
+            "對於使用者的提問，請回覆重點的關鍵字，不要重述問題。"
+            "請將回覆字數嚴格控制在100字以內。"         
         )
-
 
         ai_config = types.GenerateContentConfig(
             max_output_tokens=500, 
             system_instruction=instruction_text
         )
 
+        # 把使用者輸入的問題傳給 Gemini
         response = client.models.generate_content(
             model='gemini-3.1-flash-lite',
-            contents=req["queryResult"]["queryText"],
+            contents=user_query,
             config=ai_config,
         )
 
-回傳生成的文字
+        # 取得 Gemini 生成的文字
         info = response.text
+
+    # 【關鍵修改】回傳 Dialogflow 看得懂的 JSON 格式
+    return jsonify({"fulfillmentText": info})
 
     return make_response(jsonify({"fulfillmentText": info}))
 @app.route("/demo")
